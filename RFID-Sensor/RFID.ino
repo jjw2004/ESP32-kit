@@ -1,45 +1,86 @@
-#include <SPI.h>
-#include <MFRC522.h>
+#include <MFRC522v2.h>
+#include <MFRC522DriverSPI.h>
+#include <MFRC522DriverPinSimple.h>
+#include <MFRC522Debug.h>
 
-#define SS_PIN 5
-#define RST_PIN 21
+MFRC522DriverPinSimple ss_pin(5);
+MFRC522DriverSPI driver{ss_pin};
+MFRC522 mfrc522{driver};
 
-MFRC522 rfid(SS_PIN, RST_PIN);
+byte welcomeCard[] = {
+  0x9B, 0x54, 0x17, 0x07
+};
+
+byte welcomeFob[] = {
+  0x8C, 0x0E, 0x32, 0x07
+};
+
+
+bool checkUID(byte *storedUID, byte storedSize) {
+
+  if (mfrc522.uid.size != storedSize) {
+    return false;
+  }
+
+  for (byte i = 0; i < storedSize; i++) {
+    if (mfrc522.uid.uidByte[i] != storedUID[i]) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
 
 void setup() {
-  Serial.begin(9600);
 
-  SPI.begin();        // Start SPI bus
-  rfid.PCD_Init();    // Initialize RC522
+  Serial.begin(115200);
+  while (!Serial);
 
-  Serial.println("RFID reader ready...");
-  Serial.println("Scan a card/tag");
+  mfrc522.PCD_Init();
+
+  Serial.println("RFID Ready");
+  Serial.println("Scan a card...");
 }
+
 
 void loop() {
 
-  // Look for a new card
-  if (!rfid.PICC_IsNewCardPresent()) {
+  if (!mfrc522.PICC_IsNewCardPresent()) {
     return;
   }
 
-  // Select the card
-  if (!rfid.PICC_ReadCardSerial()) {
+  if (!mfrc522.PICC_ReadCardSerial()) {
     return;
   }
 
-  Serial.print("Card UID: ");
 
-  for (byte i = 0; i < rfid.uid.size; i++) {
-    Serial.print(rfid.uid.uidByte[i] < 0x10 ? " 0" : " ");
-    Serial.print(rfid.uid.uidByte[i], HEX);
+  if (checkUID(welcomeCard, sizeof(welcomeCard))) {
+
+    Serial.println("WELCOME CARD!");
+    Serial.println("Access granted.");
+
   }
 
-  Serial.println();
+  else if (checkUID(welcomeFob, sizeof(welcomeFob))) {
 
-  // Stop reading this card
-  rfid.PICC_HaltA();
-  rfid.PCD_StopCrypto1();
+    Serial.println("FOB NOT WELCOME!");
+    Serial.println("Access denied.");
 
-  delay(1000);
+  }
+
+  else {
+
+    Serial.println("UNKNOWN RFID");
+    Serial.println("Access denied.");
+
+  }
+
+
+  Serial.println("----------------");
+
+  mfrc522.PICC_HaltA();
+  mfrc522.PCD_StopCrypto1();
+
+  delay(2000);
 }
