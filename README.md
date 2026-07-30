@@ -18,4 +18,6 @@ dont expect the repo to be cleanly laid out unless i change my mind 😛
 
 there may or may not be a circuit diagram layout for the stuff im building
 
+currently working on bluetooth for multiple esp32 and wifi capabilities
+
 Feel free to use any of the code here for your own shtuff...
